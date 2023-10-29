@@ -49,7 +49,7 @@ class BookManager {
 
     const cacheKey = `book_${bookId}`
 
-    const cachedBook = instance.cacheManager.getCacheItem(cacheKey)
+    const cachedBook = await instance.cacheManager.getCacheItem(cacheKey)
 
     if (cachedBook) {
       return cachedBook
@@ -71,6 +71,25 @@ class BookManager {
 
         throw error
       }
+    }
+  }
+
+  public static async removeBook(bookId: string) {
+    try {
+      const instance = BookManager.getInstance()
+      const cacheKey = `book_${bookId}`
+
+      const book = await BookManager.getBookById(bookId)
+
+      if (!book) throw new HttpError(404, `Book with id "${bookId}" not found`)
+
+      await Cosmos.delete(CONTAINER_ID_BOOKS, bookId)
+  
+      await instance.cacheManager.invalidateCacheItem(cacheKey)
+    } catch (error) {
+      Logger.error(error)
+
+      throw error
     }
   }
 

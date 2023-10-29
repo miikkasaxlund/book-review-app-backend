@@ -1,4 +1,4 @@
-import { Container, CosmosClient } from '@azure/cosmos'
+import { Container, CosmosClient, SqlQuerySpec } from '@azure/cosmos'
 import CosmosDbError from '../../errors/CosmosDbError'
 import { DATABASE_ID } from '../../constants'
 
@@ -18,6 +18,8 @@ class Cosmos {
 
   /**
    * Private constructor to enforce singleton pattern.
+   * 
+   * @throws CosmosDbError if an error occurs while creating a new CosmosClient instance.
    */
   private constructor() {
     try {
@@ -34,6 +36,8 @@ class Cosmos {
    * Gets the singleton instance of the Cosmos class.
    * 
    * @returns The singleton instance of the Cosmos class.
+   * 
+   * @throws CosmosDbError if an error occurs while getting the Cosmos instance.
    */
   private static getInstance(): Cosmos {
     try {
@@ -51,6 +55,8 @@ class Cosmos {
    * Gets the CosmosClient instance.
    * 
    * @returns The CosmosClient instance.
+   * 
+   * @throws CosmosDbError if an error occurs while getting the CosmosDB client.
    */
   private static getClient(): CosmosClient {
     try {
@@ -66,6 +72,8 @@ class Cosmos {
    * @param containerId - The ID of the container.
    *
    * @returns A promise that resolves to the specified container.
+   * 
+   * @throws CosmosDbError if an error occurs while getting the container.
    */
   private static async getContainer(containerId: string): Promise<Container> {
     try {
@@ -86,6 +94,8 @@ class Cosmos {
    * @param resource - The resource object from Cosmos DB.
    * 
    * @returns The resource without system-generated fields.
+   * 
+   * @throws CosmosDbError if an error occurs while stripping the system fields.
    */
   private static stripSystemFields(resource: any): any {
     try {
@@ -106,6 +116,8 @@ class Cosmos {
    * @param item - The item to create.
    * 
    * @returns The created resource.
+   * 
+   * @throws CosmosDbError if an error occurs while creating the item.
    */
   public static async create(containerId: string, item: any): Promise<any> {
     try {      
@@ -126,6 +138,8 @@ class Cosmos {
    * @param itemId - The ID of the item to read.
    * 
    * @returns The read resource.
+   * 
+   * @throws CosmosDbError if an error occurs while reading the item.
    */
   public static async read(containerId: string, itemId: string): Promise<any> {
     try {
@@ -135,7 +149,6 @@ class Cosmos {
   
       return this.stripSystemFields(resource)
     } catch (error) {
-      throw error
       throw new CosmosDbError(`Error reading item "${itemId}" from container "${containerId}" on database "${DATABASE_ID}".`)
     }
   }
@@ -146,6 +159,8 @@ class Cosmos {
    * @param containerId - Identifier for the container.
    * 
    * @returns A promise that resolves to an array of resources.
+   * 
+   * @throws CosmosDbError if an error occurs while reading all the items.
    */
   public static async readAll(containerId: string): Promise<any[]> {
     try {
@@ -171,6 +186,8 @@ class Cosmos {
    * @param item - The updated item.
    * 
    * @returns The updated resource.
+   * 
+   * @throws CosmosDbError if an error occurs while updating the item.
    */
   public static async update(containerId: string, itemId: string, item: any): Promise<any> {
     try {      
@@ -191,6 +208,8 @@ class Cosmos {
    * @param itemId - The ID of the item to delete.
    * 
    * @returns The response of the delete operation.
+   * 
+   * @throws CosmosDbError if an error occurs while deleting the item.
    */
   public static async delete(containerId: string, itemId: string): Promise<any> {
     try {
@@ -201,6 +220,28 @@ class Cosmos {
       return this.stripSystemFields(resource)
     } catch (error) {
       throw new CosmosDbError(`Error deleting item "${itemId}" from container "${containerId}" on database "${DATABASE_ID}".`)
+    }
+  }
+
+  /**
+   * Executes a specified query against the provided container and returns the resulting items.
+   * 
+   * @param containerId - The ID of the container to query against.
+   * @param query - The SQL query specification to execute.
+   * 
+   * @returns A promise that resolves to an array of resources that match the query.
+   * 
+   * @throws CosmosDbError if an error occurs while querying the items.
+   */
+  public static async query(containerId: string, query: SqlQuerySpec): Promise<any> {
+    try {
+      const container = await Cosmos.getContainer(containerId)
+
+      const { resources } = await container.items.query(query).fetchAll()
+
+      return resources.map(resource => this.stripSystemFields(resource))
+    } catch (error) {
+      throw new CosmosDbError(`Error querying items from container "${containerId}" on database "${DATABASE_ID}"`)
     }
   }
 }

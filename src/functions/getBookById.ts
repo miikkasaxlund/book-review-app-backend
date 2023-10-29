@@ -1,4 +1,5 @@
 import { app } from "@azure/functions"
+
 import BookManager from "../utils/managers/BookManager"
 import RequestHandler from "../utils/RequestHandler"
 import HttpError from "../errors/HttpError"

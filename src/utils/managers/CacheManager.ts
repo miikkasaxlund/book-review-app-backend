@@ -1,4 +1,5 @@
 import { DEFAULT_CACHE_SIZE } from "../../constants"
+import Logger from "../logging/Logger"
 import { LRUCache } from "./LRUCache"
 import { Mutex, MutexInterface } from 'async-mutex'
 
@@ -12,13 +13,13 @@ export interface CacheObserver {
    * @param key - Key of the cache item.
    * @param data - Data to update in the cache.
    */
-  updateCacheItem(key: string, data: any): void
+  updateCacheItem(key: string, data: any): Promise<void>
   /**
    * Invalidates (removes) a cache item based on its key.
    * 
    * @param key - Key of the cache item to invalidate.
    */
-  invalidateCacheItem(key: string): void
+  invalidateCacheItem(key: string): Promise<void>
 }
 
 /**
@@ -64,10 +65,20 @@ export class CacheManager {
    * @returns The cached data, or null if not found.
    */
   public async getCacheItem(key: string): Promise<any> {
+    Logger.debug(`Attempting to retrieve cache item with key: '${key}'`)
+
     const release = await this.getMutexForKey(key).acquire()
 
     try {
-      return this.cache.get(key)
+      const item = this.cache.get(key)
+
+      if (item) {
+        Logger.debug(`Cache item with key: '${key}' was successfully retrieved.`)
+      } else {
+        Logger.debug(`Cache item with key: '${key}' was not found.`)
+      }
+
+      return item
     } finally {
       release()
     }
@@ -82,10 +93,14 @@ export class CacheManager {
    * @param data - Data to update or add to the cache.
    */
   public async updateCacheItem(key: string, data: any): Promise<void> {
+    Logger.debug(`Attempting to update cache item with key: '${key}'`)
+
     const release = await this.getMutexForKey(key).acquire()
 
     try {
-      return this.cache.put(key, data)
+      this.cache.put(key, data)
+
+      Logger.debug(`Cache item with key: '${key}' was successfully updated.`)
     } finally {
       release()
     }
@@ -99,10 +114,14 @@ export class CacheManager {
    * @param key - Key of the cache item to invalidate.
    */
   public async invalidateCacheItem(key: string): Promise<void> {
+    Logger.debug(`Attempting to invalidate cache item with key: '${key}'`)
+    
     const release = await this.getMutexForKey(key).acquire()
 
     try {
       this.cache.delete(key)
+
+      Logger.debug(`Cache item with key: '${key}' was successfully invalidated.`)
     } finally {
       release()
     }
@@ -145,6 +164,8 @@ export class CacheSubject {
    * @param data - Updated data.
    */
   notifyCacheUpdate(key: string, data: any): void {
+    Logger.debug(`Notifying observers about cache update for key: '${key}'`)
+
     for (const observer of this.observers) {
       observer.updateCacheItem(key, data)
     }
@@ -156,6 +177,8 @@ export class CacheSubject {
    * @param key - Key of the cache item that was invalidated.
    */
   notifyCacheInvalidation(key: string): void {
+    Logger.debug(`Notifying observers about cache invalidation for key: '${key}'`)
+
     for (const observer of this.observers) {
       observer.invalidateCacheItem(key)
     }
