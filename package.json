@@ -12,7 +12,9 @@
   },
   "dependencies": {
     "@azure/cosmos": "^4.0.0",
-    "@azure/functions": "^4.0.0-alpha.1"
+    "@azure/functions": "^4.0.0-alpha.1",
+    "async-mutex": "^0.4.0",
+    "winston": "^3.11.0"
   },
   "devDependencies": {
     "@types/node": "18.x",
